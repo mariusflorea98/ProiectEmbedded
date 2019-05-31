@@ -1,6 +1,9 @@
 # ProiectEmbedded
 Sistem de alarma realizat cu Arduino.
 
+
+
+
 Componente:
 
 Arduino Mega 2560
