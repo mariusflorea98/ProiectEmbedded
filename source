@@ -1,0 +1,233 @@
+#include <LiquidCrystal.h>
+#include <Keypad.h>
+#define buzzer 8
+#define outSignal 9
+#define inputSignal 10
+
+
+boolean activare = false, activata = false, schimbareParola = false, parolaSchimbata = false, activated = false;
+char tasta;
+String parola="0000", aux;
+int distanta, timp, distanta_initiala, distanta_actuala, i, ecran =0, led=12;
+
+
+ 
+char keyMap[4][4] = {
+  {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+};
+byte randuri[4] = {14, 15, 16, 17}; 
+byte coloane[4] = {18, 19, 20, 21}; 
+Keypad myKeypad = Keypad( makeKeymap(keyMap), randuri, coloane, 4, 4); 
+LiquidCrystal lcd(1, 2, 4, 5, 6, 7);  
+
+
+
+
+int verif_distanta(){
+  
+  digitalWrite(outSignal, LOW);
+  delayMicroseconds(2);
+  digitalWrite(outSignal, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(outSignal, LOW);
+  timp = pulseIn(inputSignal, HIGH);  
+  distanta = timp*0.034/2;
+ 
+  return distanta;
+}
+
+
+void printParola(){
+   lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print("ALARMA!!! ");
+          lcd.setCursor(0,1);
+          lcd.print("Pass>");
+  }
+
+void meniu_parola() {
+  int poz=5;
+  aux = "";
+  activated = true;
+  printParola();
+      while(activated) {
+      tasta = myKeypad.getKey();
+      if (tasta != NO_KEY){
+        if(tasta >='0' && tasta <='9')
+        {
+          aux += tasta;
+          lcd.setCursor(poz,1);
+          lcd.print("*");
+          poz++;
+        }
+      }
+
+      //stergere parola
+      if (poz > 9 || tasta == '#') {
+        aux = "";
+        poz=5;
+      printParola();
+      }
+      //verificare parola
+      if ( tasta == '*') {
+        if ( aux == parola ) {
+          activated = false;
+          activata = false;
+          noTone(buzzer);
+          ecran = 0; 
+          digitalWrite(led, LOW); 
+            
+          
+        }
+        else if (aux != parola) {
+          lcd.setCursor(0,1);
+          lcd.print("Parola gresita!");
+          delay(2000);
+          printParola();
+        }
+      }    
+    }
+}
+
+ 
+void setup() { 
+  lcd.begin(16,2); 
+  pinMode(buzzer, OUTPUT); 
+  pinMode(outSignal, OUTPUT); 
+  pinMode(inputSignal, INPUT);
+  pinMode(led, OUTPUT);
+}
+void loop() {
+  if (activare) {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Alarma va fi");
+    lcd.setCursor(0,1);
+    lcd.print("activata in");
+   
+    int contor = 5; 
+    while (contor != 0) {
+      lcd.setCursor(13,1);
+      lcd.print(contor);
+      contor--;
+      tone(buzzer, 700, 100);
+      delay(1000);
+    }
+
+ 
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Alarma Activata!");
+    distanta_initiala = verif_distanta();
+    activare = false;
+    activata = true;
+  }
+  if (activata == true){
+      digitalWrite(led, HIGH); 
+       delay(1000); 
+     digitalWrite(led, LOW); 
+      delay(1000); 
+      distanta_actuala = verif_distanta() + 10;
+      if ( distanta_actuala < distanta_initiala) {
+        tone(buzzer, 1000);  
+        lcd.clear();
+        digitalWrite(led, HIGH); 
+      
+       meniu_parola();
+      }
+    }
+  if (!activata) {
+    if (ecran == 0 ){
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("A - Activare");
+      lcd.setCursor(0,1);
+      lcd.print("B - Shimb parola");
+      ecran = 1;
+    }
+    tasta = myKeypad.getKey();
+     if (tasta =='A'){       
+      tone(buzzer, 1000, 200);
+      activare = true;            
+    }
+    else if (tasta =='B') {
+      lcd.clear();
+      int i=1;
+      tone(buzzer, 2000, 100);
+      aux = "";
+      lcd.setCursor(0,0);
+      lcd.print("Parola actuala");
+      lcd.setCursor(0,1);
+      lcd.print(">");
+      schimbareParola = true;
+      parolaSchimbata = true;   
+      while(parolaSchimbata) {      
+      tasta = myKeypad.getKey();
+      if (tasta != NO_KEY){
+            if(tasta >='0' && tasta <='9')
+            {
+         aux += tasta;
+         lcd.setCursor(i,1);
+         lcd.print("*");
+         i++;
+         tone(buzzer, 2000, 100);
+        }
+      }
+      if (i > 5 || tasta == '#') {
+        aux = "";
+        i=1;
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("Parola actuala:");
+        lcd.setCursor(0,1);
+        lcd.print(">"); 
+      }
+      if ( tasta == '*') {
+        i=1;
+        if (parola == aux) {
+          aux="";
+          lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print("Parola noua:");
+          lcd.setCursor(0,1);
+          lcd.print(">");
+          while(schimbareParola) {
+            tasta = myKeypad.getKey();
+            if (tasta != NO_KEY){
+               if(tasta >='0' && tasta <='9')
+               { aux += tasta;
+                lcd.setCursor(i,1);
+                lcd.print("*");
+                i++;
+                tone(buzzer, 2000, 100);
+              }
+            }
+            if (i > 5 || tasta == '#') {
+              aux = "";
+              i=1;
+              tone(buzzer, 2000, 100);
+              lcd.clear();
+              lcd.setCursor(0,0);
+              lcd.print("Parola noua:");
+              lcd.setCursor(0,1);
+              lcd.print(">");
+            }
+            if ( tasta == '*') {
+              i=1;
+              tone(buzzer, 2000, 100);
+              parola = aux;
+              schimbareParola = false;
+              parolaSchimbata = false;
+              ecran = 0;
+            }            
+          }
+        }
+      }
+    }
+   }
+ }
+}
+ 
